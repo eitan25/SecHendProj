@@ -7,6 +7,7 @@ from time import sleep
 import pandas as pd
 from pandas import DataFrame as df
 
+# try to commit
 
 def get_element_by_xpath(row, xpath):
     # gets a driver type row, xpath.
