@@ -81,46 +81,13 @@ def gear_kind(gearbox):
     return None
 
 
-def enc_color(param):
-    # get from a string only the color and encode it:
-    # red = 0
-    # gray = 1
-    # pink = 2
-    # brown = 3
-    # green = 4
-    # blue = 5
-    # orange = 6
-    # wight = 7
-    # purple = 8
-    # yellow = 9
-    # black = 10
-    # silver = 11
-    # missing_val = 12
-    color = param.split(' ')[0]
-    if color == 'אדום':
-        return 0
-    if color == 'אפור':
-        return 1
-    if color == 'ורוד':
-        return 2
-    if color == 'חום':
-        return 3
-    if color == 'ירוק':
-        return 4
-    if color == 'כחול':
-        return 5
-    if color == 'כתום':
-        return 6
-    if color == 'לבן':
-        return 7
-    if color == 'סגול':
-        return 8
-    if color == 'צהוב':
-        return 9
-    if color == 'שחור':
-        return 10
-    if color == 'כסוף':
-        return 11
+def handle_color(param):
+    # get from a string only the color.
+    try:
+        color = param.split(' ')[0]
+        return color
+    except:
+        pass
     return None
 
 
@@ -163,12 +130,13 @@ def is_trader(row):
             return 0
     except Exception as e:
         return 1
-    return -1
+    return None
 
 
-def scrap(driver):
+def scrap(driver, area_val):
     # function scraps from given driver
-    # returns dictionary of second handed cars data
+    # area_val is the value that specify location area of the advisor
+    # returns data frame of second handed cars data
     ad_num = []
     company = []
     model = []
@@ -184,31 +152,37 @@ def scrap(driver):
     color = []
     gearbox = []
     trader = []
+    area = []
+    sub_area = []
     rows = driver.find_elements(By.CSS_SELECTOR, "div[class='feeditem table'")
     try:
         counter = 0
         for row in rows:
             driver.execute_script(f"window.scrollTo(0, {row.location['y']})")
             row.click()
-            sleep(1)
 
             # get company and model
+            t = None
             try:
                 tmp = row.find_element(By.XPATH, f'// *[ @ id = "feed_item_{counter}_title"] / span')
-                t = tmp.text.split(' ', maxsplit=1)
+                t = tmp.text.split(' ', maxsplit=2)
                 company.append(t[0])
                 model.append(t[1])
             except Exception as e:
                 print(e)
                 company.append(None)
                 model.append(None)
+
             # price handle
             p = get_element_by_xpath(row, f'// *[ @ id = "feed_item_{counter}_price"]')
             if p == 'לא צוין מחיר':
-                 p = None
+                p = None
             if p is not None:
                 p = int(p.split(' ')[0].replace(',', ''))
             price.append(p)
+
+            # area handle
+            area.append(area_val)
 
             # engine handle
             en = get_element_by_xpath(row, f'//*[@id="data_engine_size_{counter}"]')
@@ -225,7 +199,7 @@ def scrap(driver):
             # km handle
             k = get_js_element_by_xpath(row, f'//*[@id="more_details_kilometers"]/span')
             if k is not None:
-                k = int(k.replace(',',''))
+                k = int(k.replace(',', ''))
             km.append(k)
 
             # eng_kind handle
@@ -242,21 +216,29 @@ def scrap(driver):
             prev_owner.append(ownership(prev))
 
             # color handle
-            # color encoding in enc_color() function
-            color.append(enc_color(get_js_element_by_xpath(row, f'//*[@id="more_details_color"]/span')))
+            color.append(handle_color(get_js_element_by_xpath(row, f'//*[@id="more_details_color"]/span')))
 
             # gearbox handle
             # automatic = 0, manual = 1, tiptronic = 2, robotic = 3
             gearbox.append(gear_kind(get_js_element_by_xpath(row, f'//*[@id="more_details_gearBox"]/span')))
 
             # ad number handle
-            ad_num.append(int((row.find_elements(By.CSS_SELECTOR, "span[class='num_ad'"))[-1].text.split(' ')[-1]))
+            try:
+                ad_num.append(int((row.find_elements(By.CSS_SELECTOR, "span[class='num_ad'"))[-1].text.split(' ')[-1]))
+            except:
+                ad_num.append(None)
 
             # trader handle: private(0) or trader(1)
             trader.append(is_trader(row))
 
+            # sub_area handle
+            sub_area.append(get_element_by_xpath(row, f'//*[@id="accordion_wide_{counter}"]/div/div[2]/div/div[2]/div[1]/div/div/div[1]/div/span[2]'))
 
-            counter += 1
+
+            counter+=1
+            # during EDA found that only fist 18 ads are private and the other are from traders.
+            if counter == 18:
+                break
 
 
 
@@ -275,25 +257,57 @@ def scrap(driver):
                  'test': test,
                  'current_owner': current_owner,
                  'prev_owner': prev_owner,
-                 'color': color,
+                 'צבע': color,
                  'gearbox': gearbox,
-                 'trader': trader
+                 'trader': trader,
+                 'area': area,
+                 'sub_area': sub_area
                  }
-    print(rows_dict)
-    return rows_dict
+    return df(rows_dict)
 
 
+# scrped_df is an empty data frame to save all the data to export
+scraped_df = df(columns=['ad_num',
+                         'company',
+                         'model',
+                         'price',
+                         'engine',
+                         'year',
+                         'hand',
+                         'km',
+                         'eng_kind',
+                         'test',
+                         'current_owner',
+                         'prev_owner',
+                         'צבע',
+                         'gearbox',
+                         'trader',
+                         'area',
+                         'sub_area'])
+# undetected webdriver to avoid blocks
 driver = uc.Chrome()
+# list of area codes as described below the code row.
+area_list = [2, 25, 19, 101, 100, 41, 75, 43]
+# 2=center
+# 25=north
+# 19=sharon
+# 101=hadera&valies
+# 100=jerusalem
+# 41=shfela
+# 75=y"osh
+# 43=south
 
-# setting dynamic URL and needed parameters
-area_list = [2, 25, 19]  # 2=center, 25=north, 19=sharon
-url = f"https://www.yad2.co.il/vehicles/cars?area={area_list[0]}"
+for area in area_list:
+    # scrap first page
+    url = f"https://www.yad2.co.il/vehicles/cars?area={area}"
+    driver.get(url=url)
+    scraped_df = pd.concat([scraped_df, scrap(driver, area)], ignore_index=True)
+    # scrap another few pages
+    for page in range(2, 30):
+        url = f"https://www.yad2.co.il/vehicles/cars?area={area}&page={page}"
+        driver.get(url=url)
+        scraped_df = pd.concat([scraped_df, scrap(driver, area)], ignore_index=True)
+        print(f'area = {area} , page = {page} succeed')
 
-driver.get(url=url)
-sleep(1)
-scraped_data = scrap(driver)
 driver.close()
-scraped_df = df(scraped_data)
 scraped_df.to_csv('cars_data.csv', encoding="utf-8")
-
-
