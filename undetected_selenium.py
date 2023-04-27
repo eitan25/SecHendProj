@@ -72,7 +72,7 @@ def gear_kind(gearbox):
     # automatic = 0, manual = 1, tiptronic = 2, robotic = 3
     if gearbox == 'אוטומט':
         return 0
-    if gearbox == 'ידני':
+    if gearbox == 'ידנית':
         return 1
     if gearbox == 'טיפטרוניק':
         return 2
@@ -133,7 +133,38 @@ def is_trader(row):
     return None
 
 
-def scrap(driver, area_val):
+def get_car_list(driver):
+    # return all the car company name as a list.
+    destraction = driver.find_element(By.XPATH, '//*[@id="__layout"]/div/main/div/div[4]/div[4]/div/div/div/div/div/div[1]/button/i')
+    destraction.click()
+    dropdown_car_nemu = driver.find_element(By.XPATH, '//*[@id="__layout"]/div/main/div/div[4]/div[4]/div/div/form/ul/li[1]/div/div/div[2]/i')
+    dropdown_car_nemu.click()
+    cars = driver.find_elements(By.CSS_SELECTOR, "span[class='cb_text'")
+    car_list = []
+    for car in cars:
+        if car.text != '':
+            car_list.append(car.text)
+    return car_list
+
+
+def handle_company_and_model(row, title_url, car_list):
+    try:
+        title_text = row.find_element(By.XPATH, title_url).text
+        for car in car_list:
+            if car in title_text:
+                company = car
+                break
+        model = title_text.replace(company,'')
+        return (company , model)
+    except Exception as e:
+        print(e)
+        return (None,None)
+
+
+
+
+
+def scrap(driver, area_val, car_list):
     # function scraps from given driver
     # area_val is the value that specify location area of the advisor
     # returns data frame of second handed cars data
@@ -161,17 +192,11 @@ def scrap(driver, area_val):
             driver.execute_script(f"window.scrollTo(0, {row.location['y']})")
             row.click()
 
-            # get company and model
-            t = None
-            try:
-                tmp = row.find_element(By.XPATH, f'// *[ @ id = "feed_item_{counter}_title"] / span')
-                t = tmp.text.split(' ', maxsplit=2)
-                company.append(t[0])
-                model.append(t[1])
-            except Exception as e:
-                print(e)
-                company.append(None)
-                model.append(None)
+            # company and model handle
+            title_url = f'// *[ @ id = "feed_item_{counter}_title"] / span'
+            company_tmp, model_tmp = handle_company_and_model(row, title_url, car_list)
+            company.append(company_tmp)
+            model.append(model_tmp)
 
             # price handle
             p = get_element_by_xpath(row, f'// *[ @ id = "feed_item_{counter}_price"]')
@@ -297,16 +322,23 @@ area_list = [2, 25, 19, 101, 100, 41, 75, 43]
 # 75=y"osh
 # 43=south
 
+url = f"https://www.yad2.co.il/vehicles/cars?area={area_list[0]}"
+driver.get(url)
+# get all the cars from yad2 as a list.
+car_list = get_car_list(driver)
+print(car_list)
+
 for area in area_list:
     # scrap first page
-    url = f"https://www.yad2.co.il/vehicles/cars?area={area}"
-    driver.get(url=url)
-    scraped_df = pd.concat([scraped_df, scrap(driver, area)], ignore_index=True)
+    if area != area_list[0]:
+        url = f"https://www.yad2.co.il/vehicles/cars?area={area}"
+        driver.get(url=url)
+    scraped_df = pd.concat([scraped_df, scrap(driver, area, car_list)], ignore_index=True)
     # scrap another few pages
     for page in range(2, 30):
         url = f"https://www.yad2.co.il/vehicles/cars?area={area}&page={page}"
         driver.get(url=url)
-        scraped_df = pd.concat([scraped_df, scrap(driver, area)], ignore_index=True)
+        scraped_df = pd.concat([scraped_df, scrap(driver, area, car_list)], ignore_index=True)
         print(f'area = {area} , page = {page} succeed')
 
 driver.close()
