@@ -1,9 +1,6 @@
 import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from time import sleep
 import pandas as pd
 from pandas import DataFrame as df
 
@@ -161,9 +158,6 @@ def handle_company_and_model(row, title_url, car_list):
         return (None,None)
 
 
-
-
-
 def scrap(driver, area_val, car_list):
     # function scraps from given driver
     # area_val is the value that specify location area of the advisor
@@ -185,12 +179,17 @@ def scrap(driver, area_val, car_list):
     trader = []
     area = []
     sub_area = []
+    price_list_url = []
     rows = driver.find_elements(By.CSS_SELECTOR, "div[class='feeditem table'")
     try:
         counter = 0
         for row in rows:
             driver.execute_script(f"window.scrollTo(0, {row.location['y']})")
             row.click()
+
+            # price_list_url handle
+            price_url = row.find_element(By.XPATH, f'//*[@id="accordion_wide_{counter}"]/div/div[2]/div/div[2]/div[1]/div/div/div[2]/p/a').get_attribute('href')
+            price_list_url.append(price_url)
 
             # company and model handle
             title_url = f'// *[ @ id = "feed_item_{counter}_title"] / span'
@@ -265,8 +264,6 @@ def scrap(driver, area_val, car_list):
             if counter == 18:
                 break
 
-
-
     except Exception as e:
         print(e)
 
@@ -286,7 +283,8 @@ def scrap(driver, area_val, car_list):
                  'gearbox': gearbox,
                  'trader': trader,
                  'area': area,
-                 'sub_area': sub_area
+                 'sub_area': sub_area,
+                 'price_list_url': price_list_url
                  }
     return df(rows_dict)
 
@@ -308,9 +306,12 @@ scraped_df = df(columns=['ad_num',
                          'gearbox',
                          'trader',
                          'area',
-                         'sub_area'])
+                         'sub_area',
+                         'price_list'])
+
 # undetected webdriver to avoid blocks
 driver = uc.Chrome()
+
 # list of area codes as described below the code row.
 area_list = [2, 25, 19, 101, 100, 41, 75, 43]
 # 2=center
@@ -326,7 +327,8 @@ url = f"https://www.yad2.co.il/vehicles/cars?area={area_list[0]}"
 driver.get(url)
 # get all the cars from yad2 as a list.
 car_list = get_car_list(driver)
-print(car_list)
+
+exception_flag = False
 
 for area in area_list:
     # scrap first page
@@ -335,11 +337,17 @@ for area in area_list:
         driver.get(url=url)
     scraped_df = pd.concat([scraped_df, scrap(driver, area, car_list)], ignore_index=True)
     # scrap another few pages
-    for page in range(2, 30):
+    for page in range(2, 26):
         url = f"https://www.yad2.co.il/vehicles/cars?area={area}&page={page}"
         driver.get(url=url)
-        scraped_df = pd.concat([scraped_df, scrap(driver, area, car_list)], ignore_index=True)
+        try:
+            scraped_df = pd.concat([scraped_df, scrap(driver, area, car_list)], ignore_index=True)
+        except:
+            print(f'could not scrap page {page} in area {area}')
+            exception_flag = True
         print(f'area = {area} , page = {page} succeed')
+    if exception_flag == True:
+        break
 
 driver.close()
-scraped_df.to_csv('cars_data.csv', encoding="utf-8")
+scraped_df.to_csv('cars_data0105.csv', encoding="utf-8")
