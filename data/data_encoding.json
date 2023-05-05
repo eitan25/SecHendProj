@@ -1,0 +1,71 @@
+{
+  "color": [
+    {
+       "לבן": 0,
+       "שחור": 1,
+       "אפור": 2,
+       "כסוף": 3,
+       "כחול": 4,
+       "אדום": 5,
+       "כסף": 6,
+       "ברונזה": 7,
+       "בז'": 8,
+       "חום": 9,
+       "ירוק": 10,
+       "פלטינה": 11,
+       "בורדו": 12,
+       "תכלת": 13,
+       "כתום": 14,
+       "זהב": 15,
+       "טורקיז": 16,
+       "שמפניה": 17,
+       "צהוב": 18,
+       "ורוד": 19,
+       "קרם": 20,
+       "סגול": 21,
+       "טוניק": 22,
+       "ירקרק": 23,
+       "חרדל": 24
+    }
+  ],
+  "eng_kind": [
+    {
+      "gas": 0,
+      "hybrid elc/diesel": 1,
+      "electric": 2,
+      "hybrid elc/benzine": 3,
+      "gas/benzine": 4,
+      "turbo diesel": 5,
+      "diesel": 6,
+      "benzine": 7
+    }
+  ],
+  "gearbox": [
+    {
+      "automatic": 0,
+      "manual": 1,
+      "tiptronic": 2,
+      "robotic": 3
+    }
+  ],
+  "owner": [
+    {
+      "private": 0,
+      "leasing": 1,
+      "rent": 2,
+      "company": 3,
+      "taxi": 4,
+      "driving lessons": 5,
+      "personal import": 6,
+      "parallel import": 7,
+      "governmental": 8,
+      "without prev ownership": 9
+    }
+  ],
+  "trader": [
+    {
+      "private": 0,
+      "trader": 1
+    }
+  ]
+}
