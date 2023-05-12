@@ -7,7 +7,7 @@ import pandas as pd
 
 # to avoid data loss during scrapping we will save once we detected.
 # then we will return to scrap from the same position from the new file.
-data = pd.read_csv('./data/full_car_data0105.csv')
+data = pd.read_csv('./data/full_car_data0105.csv', index_col=0)
 
 # print(data)
 
