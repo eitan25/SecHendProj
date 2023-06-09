@@ -10,6 +10,4 @@ In the used car market there is a problem of mistrust:
     
 In our project we want to understand wich car is "best saller".
 
-We will do so by scraping and analyzing data from "yad2.co.il" site
-
-    yad2 - live data for cars in israel and estimated car value.
+We will do so by scraping and analyzing data from "yad2.co.il" site.
